@@ -1,5 +1,13 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import {
+  playerAction,
+  createGroup,
+  getPlayers,
+  getZoneWithCoordinator,
+  setFavourite,
+  zoneAction
+} from "./src/sonos-interfacer.js";
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080');
@@ -22,6 +30,39 @@ app.use((req, res, next) => {
 // Basic health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.post('/music/start/:playlist', async (req: Request, res: Response) => {
+  const playlist = req.params.playlist.replace(/_/g, ' ');
+  const players = await getPlayers();
+
+  const coordinator = 'Port';
+  await createGroup(coordinator, players);
+  await setFavourite(coordinator, playlist);
+  await playerAction(coordinator, 'play');
+
+
+  console.log(players);
+
+  res.json({ success: true, action: 'play', timestamp: new Date().toISOString() });
+});
+
+app.post('/music/:action', async (req: Request, res: Response) => {
+  const expectedAction = req.params.action;
+  await playerAction('Port', expectedAction)
+});
+
+app.post('/volume/:action', async (req: Request, res: Response) => {
+  const expectedAction = req.params.action;
+
+  let data = '';
+  if (expectedAction === 'up') {
+    data = '+2';
+  } else {
+    data = '-2';
+  }
+
+  await zoneAction('Port', data);
 });
 
 // Device control endpoints
