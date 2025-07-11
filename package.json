@@ -20,13 +20,13 @@
     "prettier": "prettier -w *.ts"
   },
   "dependencies": {
-    "@svrooij/sonos": "^2.5.0",
     "axios": "^1.10.0",
     "bluebird": "^3.7.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "html-entities": "^1.4.0",
     "lodash": "^4.17.21",
-    "sonos": "^1.14.1"
+    "sonos-discovery": "https://github.com/jishi/node-sonos-discovery/archive/v1.8.0.tar.gz"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.1",

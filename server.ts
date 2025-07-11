@@ -48,8 +48,9 @@ app.post('/music/start/:playlist', async (req: Request, res: Response) => {
 });
 
 app.post('/music/:action', async (req: Request, res: Response) => {
-  const expectedAction = req.params.action;
-  await playerAction('Port', expectedAction)
+  const expectedAction = req.params.action as 'play' | 'pause' | 'playpause';
+  await playerAction('Port', expectedAction);
+  res.json({ success: true, action: expectedAction, timestamp: new Date().toISOString() });
 });
 
 app.post('/volume/:action', async (req: Request, res: Response) => {
