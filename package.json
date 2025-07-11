@@ -1,0 +1,36 @@
+{
+  "name": "sofabaton-home",
+  "version": "0.0.1",
+  "description": "A HTTP server for a SofaBaton to interface with",
+  "homepage": "https://github.com/joshhendo/sofabaton-home#readme",
+  "bugs": {
+    "url": "https://github.com/joshhendo/sofabaton-home/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshhendo/sofabaton-home.git"
+  },
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "main": "server.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prettier": "prettier -w *.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.12",
+    "prettier": "^3.6.2"
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "singleQuote": true
+  }
+}
