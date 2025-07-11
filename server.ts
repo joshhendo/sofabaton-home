@@ -56,11 +56,9 @@ app.post('/music/:action', async (req: Request, res: Response) => {
 app.post('/volume/:action', async (req: Request, res: Response) => {
   const expectedAction = req.params.action;
 
-  let data = '';
+  let data = -2;
   if (expectedAction === 'up') {
-    data = '+2';
-  } else {
-    data = '-2';
+    data = +1;
   }
 
   await zoneAction('Port', data);

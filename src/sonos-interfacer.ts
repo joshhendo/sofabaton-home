@@ -23,13 +23,13 @@ export async function playerAction(player: string, action: 'play' | 'pause' | 'p
     return sonosService.playerAction(player, action);
 }
 
-export async function zoneAction(zone: string, action: string) {
+export async function zoneAction(zone: string, action: number) {
     return sonosService.zoneAction(zone, action);
 }
 
 export async function getZoneWithCoordinator(coordinator: string) {
     const zones = await sonosService.getZones();
-    
+
     for (const zone of zones) {
         if (zone.coordinator.roomName === coordinator) {
             return zone.uuid;

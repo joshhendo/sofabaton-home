@@ -81,7 +81,7 @@ export class SonosService {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     // Wait for discovery to find devices
     await new Promise((resolve) => {
       const checkInterval = setInterval(() => {
@@ -90,14 +90,14 @@ export class SonosService {
           resolve(true);
         }
       }, 100);
-      
+
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
         resolve(false);
       }, 10000);
     });
-    
+
     this.initialized = true;
   }
 
@@ -112,7 +112,7 @@ export class SonosService {
   // Zone management
   async getZones(): Promise<SimplifiedZone[]> {
     await this.initialize();
-    
+
     return this.discovery.zones.map((zone: any) => {
       const coordinator = zone.coordinator;
       return {
@@ -141,6 +141,13 @@ export class SonosService {
     return player.setVolume(volume);
   }
 
+  async getGroupVolume(roomName: string): Promise<number> {
+    await this.initialize();
+    const player = this.getPlayer(roomName);
+    if (!player) throw new Error(`Player ${roomName} not found`);
+    return player.groupState.volume;
+  }
+
   async setGroupVolume(roomName: string, volume: number): Promise<any> {
     await this.initialize();
     const player = this.getPlayer(roomName);
@@ -167,7 +174,7 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const state = player.coordinator.state.playbackState;
     if (state === 'PLAYING') {
       await player.coordinator.pause();
@@ -207,7 +214,7 @@ export class SonosService {
     const coordinator = this.getPlayer(coordinatorName);
     if (!player) throw new Error(`Player ${roomName} not found`);
     if (!coordinator) throw new Error(`Coordinator ${coordinatorName} not found`);
-    
+
     return player.setAVTransport(`x-rincon:${coordinator.uuid}`);
   }
 
@@ -215,7 +222,7 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     return player.becomeCoordinatorOfStandaloneGroup();
   }
 
@@ -238,7 +245,7 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     if (player.state.mute) {
       return player.unMute();
     } else {
@@ -271,17 +278,9 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
-    const favorites = await this.getFavorites();
-    const item = favorites.find((fav: any) => 
-      fav.title.toLowerCase() === decodeURIComponent(favorite).toLowerCase()
-    );
-    
-    if (!item) {
-      throw new Error(`Favorite ${favorite} not found`);
-    }
-    
-    return player.coordinator.replaceWithFavorite(item);
+
+    return player.coordinator.replaceWithFavorite(decodeURIComponent(favorite))
+      .then(() => player.coordinator.play());
   }
 
   // Playlists
@@ -295,17 +294,9 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
-    const playlists = await this.getPlaylists();
-    const item = playlists.find((pl: any) => 
-      pl.title.toLowerCase() === decodeURIComponent(playlist).toLowerCase()
-    );
-    
-    if (!item) {
-      throw new Error(`Playlist ${playlist} not found`);
-    }
-    
-    return player.coordinator.replaceWithPlaylist(item);
+
+    return player.coordinator.replaceWithPlaylist(decodeURIComponent(playlist))
+      .then(() => player.coordinator.play());
   }
 
   // Queue management
@@ -320,9 +311,9 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const queue = await player.coordinator.getQueue(0, limit);
-    
+
     if (!detailed) {
       return queue.items.map((item: any) => ({
         title: item.title,
@@ -331,7 +322,7 @@ export class SonosService {
         albumArtUri: item.albumArtUri
       }));
     }
-    
+
     return queue;
   }
 
@@ -340,15 +331,15 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     if (trackNo !== undefined) {
       await player.coordinator.seek(trackNo);
     }
-    
+
     if (elapsedTime !== undefined) {
       await player.coordinator.timeSeek(elapsedTime);
     }
-    
+
     return { status: 'success' };
   }
 
@@ -357,7 +348,7 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const formattedTime = sleepTime === 'off' ? 0 : parseInt(sleepTime.toString());
     return player.coordinator.sleep(formattedTime);
   }
@@ -367,10 +358,10 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const sourcePlayer = sourcePlayerName ? this.getPlayer(sourcePlayerName) : player;
     if (!sourcePlayer) throw new Error(`Source player ${sourcePlayerName} not found`);
-    
+
     const uri = `x-rincon-stream:${sourcePlayer.uuid}`;
     return player.coordinator.setAVTransport(uri);
   }
@@ -380,7 +371,7 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const modes: { [key: string]: any } = {
       'normal': { shuffle: false, repeat: false, crossfade: false },
       'repeat_all': { shuffle: false, repeat: true, crossfade: false },
@@ -390,10 +381,10 @@ export class SonosService {
       'repeat_one': { shuffle: false, repeat: 'one', crossfade: false },
       'crossfade': { crossfade: true }
     };
-    
+
     const mode = modes[playMode.toLowerCase()];
     if (!mode) throw new Error(`Invalid play mode: ${playMode}`);
-    
+
     return player.coordinator.setPlayMode(mode);
   }
 
@@ -402,10 +393,10 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const uri = this.spotifyUriToSonosUri(spotifyUri);
     const metadata = this.generateSpotifyMetadata(spotifyUri);
-    
+
     return player.coordinator.addURIToQueue(uri, metadata);
   }
 
@@ -413,10 +404,10 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const uri = this.spotifyUriToSonosUri(spotifyUri);
     const metadata = this.generateSpotifyMetadata(spotifyUri);
-    
+
     await player.coordinator.clearQueue();
     await player.coordinator.addURIToQueue(uri, metadata);
     return player.coordinator.play();
@@ -426,11 +417,11 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const uri = this.spotifyUriToSonosUri(spotifyUri);
     const metadata = this.generateSpotifyMetadata(spotifyUri);
     const position = player.coordinator.state.trackNo + 1;
-    
+
     return player.coordinator.addURIToQueue(uri, metadata, position);
   }
 
@@ -438,7 +429,7 @@ export class SonosService {
     const parts = spotifyUri.split(':');
     const spotifyID = parts[parts.length - 1];
     const type = parts[parts.length - 2];
-    
+
     if (type === 'track') {
       return `x-sonos-spotify:spotify:track:${spotifyID}?sid=9&flags=8224&sn=9`;
     } else if (type === 'album') {
@@ -449,14 +440,14 @@ export class SonosService {
       const userID = parts[parts.length - 3];
       return `x-rincon-cpcontainer:1006206cspotify:playlist:${spotifyID}?sid=9&flags=8300&sn=9`;
     }
-    
+
     throw new Error(`Unsupported Spotify URI type: ${type}`);
   }
 
   private generateSpotifyMetadata(spotifyUri: string): string {
     const parts = spotifyUri.split(':');
     const type = parts[parts.length - 2];
-    
+
     if (type === 'track') {
       return `<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">
         <item id="${spotifyUri}" restricted="true">
@@ -466,7 +457,7 @@ export class SonosService {
         </item>
       </DIDL-Lite>`;
     }
-    
+
     return '';
   }
 
@@ -475,7 +466,7 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const stationIdStr = stationId.toString();
     const uri = `x-sonosapi-stream:${stationIdStr}?sid=254&flags=8224&sn=0`;
     const metadata = `<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">
@@ -485,7 +476,7 @@ export class SonosService {
         <desc id="cdudn" nameSpace="urn:schemas-rinconnetworks-com:metadata-1-0/">SA_RINCON65031_</desc>
       </item>
     </DIDL-Lite>`;
-    
+
     return player.coordinator.setAVTransport(uri, metadata);
   }
 
@@ -494,21 +485,21 @@ export class SonosService {
     await this.initialize();
     const player = this.getPlayer(roomName);
     if (!player) throw new Error(`Player ${roomName} not found`);
-    
+
     const promises = [];
-    
+
     if (settings.bass !== undefined) {
       promises.push(player.setBass(settings.bass));
     }
-    
+
     if (settings.treble !== undefined) {
       promises.push(player.setTreble(settings.treble));
     }
-    
+
     if (settings.loudness !== undefined) {
       promises.push(player.setLoudness(settings.loudness));
     }
-    
+
     await Promise.all(promises);
     return { status: 'success' };
   }
@@ -526,7 +517,7 @@ export class SonosService {
     const promises = this.discovery.zones
       .filter((zone: any) => zone.coordinator.state.playbackState === 'PLAYING')
       .map((zone: any) => zone.coordinator.pause());
-    
+
     await Promise.all(promises);
     return { paused: promises.length };
   }
@@ -545,24 +536,24 @@ export class SonosService {
     }
 
     await this.initialize();
-    
+
     const zones = await this.getZones();
     const existingZone = zones.find(z => z.coordinator.roomName === coordinatorName);
-    
+
     if (existingZone) {
       // Remove members that shouldn't be there
       for (const member of existingZone.members) {
         if (member.roomName === coordinatorName) continue;
-        
+
         if (!playerNames.includes(member.roomName)) {
           await this.leave(member.roomName);
         }
       }
-      
+
       // Add new members
       for (const playerName of playerNames) {
         if (playerName === coordinatorName) continue;
-        
+
         const isMember = existingZone.members.some(m => m.roomName === playerName);
         if (!isMember) {
           await this.join(playerName, coordinatorName);
@@ -571,34 +562,34 @@ export class SonosService {
     } else {
       // Make coordinator leave its current group
       await this.leave(coordinatorName);
-      
+
       // Add all members to the new group
       for (const playerName of playerNames) {
         if (playerName === coordinatorName) continue;
         await this.join(playerName, coordinatorName);
       }
     }
-    
+
     // Set volume for all members
     for (const playerName of playerNames) {
       await this.setVolume(playerName, 10);
     }
-    
+
     return coordinatorName;
   }
 
   async getPlayers(): Promise<string[]> {
     await this.initialize();
-    
+
     const zones = await this.getZones();
     const players: string[] = [];
-    
+
     for (const zone of zones) {
       for (const member of zone.members) {
         players.push(member.roomName);
       }
     }
-    
+
     return players;
   }
 
@@ -615,7 +606,11 @@ export class SonosService {
     }
   }
 
-  async zoneAction(zoneName: string, volume: string | number): Promise<any> {
-    return this.setGroupVolume(zoneName, parseInt(volume.toString()));
+  async zoneAction(zoneName: string, volume: number, type: 'absolute' | 'relative'): Promise<any> {
+    const volumeToSet = type === 'absolute' ? volume : ((await this.getGroupVolume(zoneName)) + volume);
+
+    console.log(volumeToSet);
+
+    return this.setGroupVolume(zoneName, volumeToSet);
   }
 }
