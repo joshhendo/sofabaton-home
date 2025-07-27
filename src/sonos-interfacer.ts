@@ -24,7 +24,7 @@ export async function playerAction(player: string, action: 'play' | 'pause' | 'p
 }
 
 export async function zoneAction(zone: string, action: number) {
-    return sonosService.zoneAction(zone, action);
+    return sonosService.zoneAction(zone, action, 'relative');
 }
 
 export async function getZoneWithCoordinator(coordinator: string) {

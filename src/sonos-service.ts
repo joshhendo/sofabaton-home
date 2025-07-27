@@ -593,7 +593,7 @@ export class SonosService {
     return players;
   }
 
-  async playerAction(playerName: string, action: 'play' | 'pause' | 'playpause'): Promise<any> {
+  async playerAction(playerName: string, action: 'play' | 'pause' | 'playpause' | 'next' | 'previous'): Promise<any> {
     switch (action) {
       case 'play':
         return this.play(playerName);
@@ -601,6 +601,10 @@ export class SonosService {
         return this.pause(playerName);
       case 'playpause':
         return this.playPause(playerName);
+      case 'next':
+        return this.next(playerName);
+      case 'previous':
+          return this.previous(playerName);
       default:
         throw new Error(`Unknown action: ${action}`);
     }
